@@ -1,0 +1,96 @@
+2
+SELECT * FROM Customer
+WHERE Segment = 'Consumer' AND City = 'Arlington'
+
+3
+SELECT * FROM Customer
+WHERE CustomerName LIKE 'B%'
+AND EXISTS (SELECT * FROM Orders WHERE CustomerID = Customer.ID 
+AND YEAR(OrderDate) = 2017 AND MONTH(OrderDate) = 12)
+ORDER BY Segment DESC, CustomerName
+
+SELECT c.* FROM Customer c
+JOIN Orders o
+ON c.ID = o.CustomerID
+WHERE CustomerName LIKE 'B%'
+AND o.OrderDate BETWEEN '2017-12-01' AND '2017-12-31'
+ORDER BY Segment DESC, CustomerName
+
+4
+SELECT s.ID AS SubCategoryID, s.SubCategoryName, COUNT(p.ID) AS NumberOfProducts FROM SubCategory s
+JOIN Product p
+ON s.ID = p.SubCategoryID
+GROUP BY s.ID, s.SubCategoryName
+HAVING COUNT(p.ID) > 100
+ORDER BY COUNT(p.ID) DESC
+
+5
+SELECT p.ID AS ProductID, p.ProductName, o.Quantity FROM Product p
+JOIN OrderDetails o
+ON p.ID = o.ProductID
+WHERE o.Quantity = (SELECT MAX(Quantity) FROM OrderDetails)
+
+6
+WITH t AS (
+	SELECT c.ID AS CustomerID, c.CustomerName, COUNT(o.ID) AS NumberOfOrders FROM Customer c
+	JOIN Orders o
+	ON c.ID = o.CustomerID
+	GROUP BY c.ID, c.CustomerName
+)
+SELECT * FROM t
+WHERE NumberOfOrders = (SELECT MAX(NumberOfOrders) FROM t)
+
+SELECT c.ID AS CustomerID, c.CustomerName, COUNT(o.ID) FROM Customer c
+JOIN Orders o
+ON c.ID = o.CustomerID
+GROUP BY c.ID, c.CustomerName
+HAVING COUNT(o.ID) = (
+	SELECT TOP 1 COUNT(o.ID) FROM Customer c
+	JOIN Orders o
+	ON c.ID = o.CustomerID
+	GROUP BY c.ID, c.CustomerName
+	ORDER BY COUNT(o.ID) DESC
+)
+
+7
+SELECT * FROM (SELECT TOP (5) * FROM Product
+ORDER BY UnitPrice DESC) s1
+UNION ALL
+SELECT * FROM (SELECT TOP (5) * FROM Product
+ORDER BY UnitPrice) s2
+ORDER BY UnitPrice DESC
+
+8
+CREATE PROC CountProduct
+	@OrderID NVARCHAR(255),
+	@NbProducts INT OUTPUT
+AS
+BEGIN
+	SELECT @NbProducts = COUNT(DISTINCT ProductID) FROM OrderDetails
+	WHERE OrderID = @OrderID
+END
+
+9
+CREATE TRIGGER InsertProduct
+ON Product
+AFTER INSERT
+AS
+BEGIN
+	SELECT p.ProductName, s.SubCategoryName FROM inserted p
+	INNER JOIN SubCategory s
+	ON p.SubCategoryID = s.ID
+END
+
+10
+INSERT INTO Category (CategoryName)
+VALUES ('Sports')
+
+DECLARE @ID int = SCOPE_IDENTITY()
+
+INSERT INTO SubCategory
+	(SubCategoryName ,CategoryID)
+VALUES
+	('Tennis', @ID),
+	('Football', @ID)
+
+ezse.net

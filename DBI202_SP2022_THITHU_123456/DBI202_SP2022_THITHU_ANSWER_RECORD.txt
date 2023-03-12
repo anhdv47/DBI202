@@ -1,0 +1,111 @@
+1
+CREATE TABLE Departments (
+	DeptID VARCHAR(20) PRIMARY KEY,
+	name NVARCHAR(200),
+	office NVARCHAR(100)
+)
+
+CREATE TABLE Employees (
+	EmpCode VARCHAR(20) PRIMARY KEY,
+	DeptID VARCHAR(20) REFERENCES Departments(DeptID),
+	Name NVARCHAR(50),
+	BirthDate DATE
+)
+
+CREATE TABLE Dependants (
+	Number INT PRIMARY KEY,
+	EmpCode VARCHAR(20) REFERENCES Employees(EmpCode),
+	Name NVARCHAR(50),
+	BirthDate DATE,
+	Role NVARCHAR(30),
+)
+
+2
+SELECT * FROM ProductSubcategory
+WHERE Category = 'Accessories'
+
+3
+SELECT ProductID, Name, Color, Cost, Price, SellEndDate FROM Product
+WHERE Cost < 100 AND SellEndDate IS NOT NULL
+ORDER BY Cost
+
+4
+SELECT p.ProductID, p.Name AS ProductName, p.Price, 
+m.Name AS ModelName,
+s.Name AS 'SubCategoryName',
+s.Category
+FROM Product p
+LEFT JOIN ProductModel m
+ON p.ModelID = m.ModelID
+LEFT JOIN ProductSubcategory s
+ON p.SubcategoryID = s.SubcategoryID
+WHERE p.Price < 100 AND p.Color = 'Black'
+
+5
+SELECT s.SubcategoryID, s.Name AS SubcategoryName, s.Category, 
+COUNT(DISTINCT p.ProductID) AS NumberOfProducts
+FROM ProductSubcategory s
+JOIN Product p
+ON s.SubcategoryID = p.SubcategoryID
+GROUP BY s.SubcategoryID, s.Name, s.Category
+ORDER BY s.Category, COUNT(DISTINCT p.ProductID) DESC, s.Name
+
+6
+WITH t AS
+(
+	SELECT l.LocationID, l.Name AS LocationNamem, COUNT(DISTINCT i.ProductID) AS NumberOfProducts FROM Location l
+	JOIN ProductInventory i
+	ON l.LocationID = i.LocationID
+	GROUP BY l.LocationID, l.Name
+)
+SELECT * FROM t
+WHERE t.NumberOfProducts = (SELECT MIN(NumberOfProducts) FROM t)
+
+7
+WITH t AS (
+	SELECT s.Category, s.Name AS SubcategoryName, COUNT(DISTINCT p.ProductID) AS NumberOfProducts FROM ProductSubcategory s
+	JOIN Product p
+	ON s.SubcategoryID = p.SubcategoryID
+	GROUP BY s.Category, s.Name
+),
+t2 AS (
+	SELECT Category, MAX(NumberOfProducts) AS NumberOfProducts FROM t
+	GROUP BY Category
+)
+
+SELECT t.* FROM t
+JOIN t2
+ON t.Category = t2.Category
+AND t.NumberOfProducts = t2.NumberOfProducts
+ORDER BY NumberOfProducts DESC
+
+8
+CREATE PROC proc_product_model
+	@modelID INT,
+	@numberOfProducts INT OUTPUT
+AS
+BEGIN
+
+SELECT @numberOfProducts = COUNT(DISTINCT ProductID) FROM Product
+WHERE ModelID = @modelID
+
+END
+
+9
+CREATE TRIGGER tr_insert_Product
+ON Product
+AFTER INSERT
+AS
+BEGIN
+
+SELECT p.ProductID, p.Name AS ProductName, m.ModelID, m.Name AS ModelName FROM inserted p
+LEFT JOIN ProductModel m
+ON p.ModelID = m.ModelID
+
+END
+
+10
+DELETE FROM ProductInventory
+WHERE ProductID IN (SELECT ProductID FROM Product WHERE ModelID = 33)
+
+ezse.net

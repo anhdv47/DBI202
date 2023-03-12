@@ -1,0 +1,74 @@
+2
+SELECT * FROM Employees
+WHERE Salary > 9000
+
+3
+SELECT JobID, JobTitle, min_salary FROM Jobs
+WHERE min_salary > 5000
+AND JobTitle LIKE '%Manager%'
+ORDER BY min_salary DESC, JobTitle
+
+4
+SELECT e.EmployeeID, e.FirstName, e.LastName, e.Salary, d.DepartmentName, l.StateProvince, l.CountryID FROM Employees e
+INNER JOIN Departments d
+ON e.DepartmentID = d.DepartmentID
+INNER JOIN Locations l
+ON d.LocationID = l.LocationID
+WHERE e.Salary > 3000
+AND l.StateProvince = 'Washington' AND l.CountryID = 'US'
+
+5
+SELECT l.LocationID, l.StreetAddress, l.City, l.StateProvince, l.CountryID, COUNT(d.DepartmentID) AS NumberOfDepartments FROM Locations l
+LEFT JOIN Departments d
+ON l.LocationID = d.LocationID
+GROUP BY l.LocationID, l.StreetAddress, l.City, l.StateProvince, l.CountryID
+ORDER BY COUNT(d.DepartmentID) DESC, LocationID
+
+6
+WITH t AS (
+SELECT j.JobID, j.JobTitle, COUNT(e.EmployeeID) AS NumberOfEmployees FROM Jobs j
+LEFT JOIN Employees e
+ON j.JobID = e.JobID
+GROUP BY j.JobID, j.JobTitle
+)
+SELECT * FROM t
+WHERE NumberOfEmployees = (SELECT MAX(NumberOfEmployees) FROM t)
+
+7
+SELECT e1.EmployeeID, e1.FirstName, e1.LastName, e1.Salary, e1.DepartmentID, d.DepartmentName, COUNT(e2.EmployeeID) AS NumberOfSubordinates FROM Employees e1
+LEFT JOIN Employees e2
+ON e1.EmployeeID = e2.ManagerID
+JOIN Departments d
+ON e1.DepartmentID = d.DepartmentID
+GROUP BY e1.EmployeeID, e1.FirstName, e1.LastName, e1.Salary, e1.DepartmentID, d.DepartmentName
+HAVING EXISTS (SELECT * FROM Employees WHERE ManagerID = e1.EmployeeID) OR e1.Salary > 10000
+ORDER BY COUNT(e2.EmployeeID) DESC, e1.LastName
+
+8
+CREATE PROC pr1
+	@countryID varchar(10),
+	@numberOfDepartments int OUTPUT
+AS
+BEGIN
+	SELECT @numberOfDepartments = COUNT(*) FROM Departments d
+	JOIN Locations l
+	ON d.LocationID = l.LocationID
+	WHERE l.CountryID = @countryID
+END
+
+9
+CREATE TRIGGER Tr1
+ON Employees
+AFTER INSERT
+AS
+BEGIN
+	SELECT e.EmployeeID, e.FirstName, e.LastName, e.DepartmentID, d.DepartmentName FROM inserted e
+	LEFT JOIN Departments d
+	ON e.DepartmentID = d.DepartmentID
+END
+
+10
+DELETE FROM Departments
+WHERE NOT EXISTS (SELECT * FROM Employees WHERE Employees.DepartmentID = Departments.DepartmentID)
+
+ezse.net
